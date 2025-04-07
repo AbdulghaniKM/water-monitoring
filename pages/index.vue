@@ -179,24 +179,69 @@
                     >Water Status</span
                   >
                 </div>
-                <motion.span
-                  :animate="
-                    sensorData.waterDetected ? { scale: [1, 1.1, 1] } : {}
-                  "
-                  :transition="{ duration: 0.3 }"
-                  :class="[
-                    'px-4 py-1 rounded-full text-sm font-semibold',
-                    sensorData.waterDetected
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-gray-100 text-gray-700',
-                  ]"
-                >
-                  {{
-                    sensorData.waterDetected
-                      ? "Water Detected!"
-                      : "No Water Detected"
-                  }}
-                </motion.span>
+                <div class="text-right">
+                  <motion.span
+                    :animate="
+                      sensorData.waterDetected ? { scale: [1, 1.1, 1] } : {}
+                    "
+                    :transition="{ duration: 0.3 }"
+                    :class="[
+                      'px-4 py-1 rounded-full text-sm font-semibold mb-2 block',
+                      sensorData.waterDetected
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-gray-100 text-gray-700',
+                    ]"
+                  >
+                    {{
+                      sensorData.waterDetected
+                        ? "Water Detected!"
+                        : "No Water Detected"
+                    }}
+                  </motion.span>
+                </div>
+              </div>
+            </motion.div>
+            <motion.div
+              :initial="{ opacity: 0, x: 20 }"
+              :animate="{ opacity: 1, x: 0 }"
+              :whileHover="{ scale: 1.02 }"
+              :transition="{ duration: 0.3, delay: 0.2 }"
+              class="bg-gradient-to-br from-purple-50 to-indigo-50 p-6 rounded-xl border border-purple-100 shadow-sm"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <Icon
+                    name="mdi:water-opacity"
+                    class="w-8 h-8 text-purple-500"
+                  />
+                  <span class="text-lg font-medium text-gray-700"
+                    >Turbidity</span
+                  >
+                </div>
+                <div class="text-right">
+                  <span class="text-2xl font-bold text-purple-600">
+                    {{ formatTurbidity(sensorData.turbidityNTU) }}
+                  </span>
+                  <div class="flex flex-col items-end gap-1 mt-2">
+                    <motion.span
+                      v-if="sensorData.status"
+                      :animate="{ scale: [1, 1.05, 1] }"
+                      :transition="{ duration: 0.3 }"
+                      :class="[
+                        'px-3 py-1 rounded-full text-xs font-medium',
+                        sensorData.status === 'Muddy'
+                          ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                          : 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+                      ]"
+                    >
+                      Water Quality: {{ sensorData.status }}
+                    </motion.span>
+                    <span class="text-xs text-gray-500">
+                      Voltage:
+                      {{ sensorData?.turbidityVoltage?.toFixed(2) || "N/A" }}V
+                    </span>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
@@ -321,6 +366,10 @@ const isArduinoConnected = ref(false);
 const sensorData = ref<{
   temperature: number | null;
   waterDetected: boolean;
+  turbidityRaw: number | null;
+  turbidityVoltage: number | null;
+  turbidityNTU: number | null;
+  status: string | null;
 } | null>(null);
 const error = ref<string | null>(null);
 const rawMessage = ref<string | null>(null);
@@ -363,6 +412,19 @@ function connectWebSocket() {
                       ? Number(parsedSensorData.temperature)
                       : null,
                   waterDetected: Boolean(parsedSensorData.waterDetected),
+                  turbidityRaw:
+                    parsedSensorData.turbidityRaw !== undefined
+                      ? Number(parsedSensorData.turbidityRaw)
+                      : null,
+                  turbidityVoltage:
+                    parsedSensorData.turbidityVoltage !== undefined
+                      ? Number(parsedSensorData.turbidityVoltage)
+                      : null,
+                  turbidityNTU:
+                    parsedSensorData.turbidityNTU !== undefined
+                      ? Number(parsedSensorData.turbidityNTU)
+                      : null,
+                  status: parsedSensorData.status || null,
                 };
               } else {
                 console.warn(
@@ -430,6 +492,13 @@ function formatTemperature(temp: number | null): string {
     return "N/A";
   }
   return `${temp.toFixed(1)} °C`;
+}
+
+function formatTurbidity(ntu: number | null): string {
+  if (ntu === null || ntu === undefined) {
+    return "N/A";
+  }
+  return `${ntu.toFixed(1)} NTU`;
 }
 
 const frontendTech = [
